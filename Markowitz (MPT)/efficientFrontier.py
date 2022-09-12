@@ -1,5 +1,6 @@
-import scipy.optimize as sp
+import scipy as sp
 import plotly.graph_objects as go
+import pandas as pd
 from data import *
 from optimizer import *
 
@@ -8,7 +9,7 @@ def portfolioReturn(weights, meanReturns, covMatrix):
     return portfolioPerformance(weights, meanReturns, covMatrix)[0]
 
 
-def efficientOpt(meanReturns, covMatrix, returnTarget, constraintSet=(0, 1)):
+def efficientOpt(meanReturns, covMatrix, returnTarget, constraintSet=(0,1)):
     """For each returnTarget, we want to optimise the portfolio for min variance"""
     numAssets = len(meanReturns)
     args = (meanReturns, covMatrix)
@@ -19,8 +20,8 @@ def efficientOpt(meanReturns, covMatrix, returnTarget, constraintSet=(0, 1)):
     bounds = tuple(bound for asset in range(numAssets))
     x0 = np.array(numAssets * [1. / numAssets])
 
-    effOpt = sp.minimize(portfolioVariance, x0=x0, args=args, method='SLSQP', bounds=bounds,
-                         constraints=constraints)
+    effOpt = sp.optimize.minimize(portfolioVariance, x0=x0, args=args, method='SLSQP', bounds=bounds,
+                                  constraints=constraints)
     return effOpt
 
 
@@ -49,7 +50,7 @@ def calculatedResults(meanReturns, covMatrix, riskFreeRate=0, constraintSet=(0, 
     for target in targetReturns:
         efficientList.append(efficientOpt(meanReturns, covMatrix, target)['fun'])
 
-    return maxSR_returns, maxSR_std, maxSR_allocation, minVol_returns, minVol_std, minVol_allocation, efficientList
+    return maxSR_returns, maxSR_std, maxSR_allocation, minVol_returns, minVol_std, minVol_allocation, efficientList, targetReturns
 
 
 def EF_graph(meanReturns, covMatrix, riskFreeRate=0, constraintSet=(0, 1)):
@@ -101,3 +102,28 @@ def EF_graph(meanReturns, covMatrix, riskFreeRate=0, constraintSet=(0, 1)):
 
     fig = go.Figure(data=data, layout=layout)
     return fig.show()
+
+
+if __name__ == '__main__':
+
+    stockList = ['CBA', 'BHP', 'TLS']
+    stocks = [stock + '.AX' for stock in stockList]
+
+    endDate = dt.datetime.now()
+    startDate = endDate - dt.timedelta(days=365)
+
+    weights = np.array([0.3, 0.3, 0.4])
+
+    meanReturns, covMatrix = getData(stocks, start=startDate, end=endDate)
+    EF_graph(meanReturns, covMatrix)
+    # print(calculatedResults(meanReturns, covMatrix))
+    # print(efficientOpt(meanReturns, covMatrix, 0.01))
+    # returns, std = portfolioPerformance(weights, meanReturns, covMatrix)
+
+    # result = maxSR(meanReturns, covMatrix)
+    # maxSR, maxWeights = result['fun'], result['x']
+    # print(-maxSR, maxWeights)
+
+    # result = minimizeVariance(meanReturns, covMatrix)
+    # minVar, minVarWeights = result['fun'], result['x']
+    # print(minVar, minVarWeights)
